@@ -1,0 +1,40 @@
+provider "aws" {
+  region = "us-east-1"  # Cambia la región según tus necesidades
+}
+
+resource "aws_security_group" "allow_ssh" {
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"  # Permitir todo el tráfico de salida
+  }
+
+  tags = {
+    Name = "allow_ssh"
+  }
+}
+  # Permitir acceso SSH desde cualquier IP
+resource "aws_instance" "example" {
+  ami           = "ami-0cad6ee50670e3d0e"  # ID de Amazon Linux 2 en us-east-1
+  instance_type = "t2.micro"  # Tipo de instancia (puedes cambiarlo)
+
+  security_groups        = [aws_security_group.allow_ssh.name]
+
+  tags = {
+    Name = "MyEC2Instance"
+  }
+}
