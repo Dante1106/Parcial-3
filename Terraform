@@ -27,14 +27,56 @@ resource "aws_security_group" "allow_ssh" {
     Name = "allow_ssh"
   }
 }
-  # Permitir acceso SSH desde cualquier IP
+
 resource "aws_instance" "example" {
   ami           = "ami-0cad6ee50670e3d0e"  # ID de Amazon Linux 2 en us-east-1
   instance_type = "t2.micro"  # Tipo de instancia (puedes cambiarlo)
 
-  security_groups        = [aws_security_group.allow_ssh.name]
+  security_groups = [aws_security_group.allow_ssh.name]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              # Actualizar el sistema
+              yum update -y
+              # Instalar Docker
+              amazon-linux-extras install docker -y
+              # Iniciar el servicio Docker
+              service docker start
+              # Añadir el usuario ec2-user al grupo docker
+              usermod -a -G docker ec2-user
+              # Crear un directorio para la aplicación
+              mkdir /home/ec2-user/mi-pagina-web
+              cd /home/ec2-user/mi-pagina-web
+              # Crear el archivo index.html
+              cat << 'EOL' > index.html
+              <!DOCTYPE html>
+              <html lang="es">
+              <head>
+                  <meta charset="UTF-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <title>Mi Página Web</title>
+              </head>
+              <body>
+                  <h1>¡Bienvenido a Mi Página Web!</h1>
+                  <p>Esta es una página web simple servida con Nginx en Docker.</p>
+              </body>
+              </html>
+              EOL
+              # Crear el Dockerfile
+              cat << 'EOL' > Dockerfile
+              FROM nginx:alpine
+              COPY index.html /usr/share/nginx/html/
+              EXPOSE 80
+              CMD ["nginx", "-g", "daemon off;"]
+              EOL
+              # Construir la imagen de Docker
+              docker build -t mi-pagina-web .
+              # Ejecutar el contenedor
+              docker run -d -p 80:80 mi-pagina-web
+              EOF
 
   tags = {
     Name = "MyEC2Instance"
   }
 }
+
